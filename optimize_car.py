@@ -18,17 +18,22 @@ if __name__ == '__main__':
 	
 
 	#solve for initial trajectories
-	system.set_goal(np.array([2, 4, np.pi/2, 0]))
+	system.set_goal(np.array([3, 3, np.pi/2, 0]))
 	for i in range(10):
 		solver.backward_pass()
 		solver.forward_pass()
 
-	constraint = CircleConstraintForCar(np.ones(2), 0.5, system)
-	constraint2 = CircleConstraintForCar(np.array([2, 2]), 1.0, system)
-	#solver.add_constraint(constraint)
-	solver.add_constraint(constraint2)
+	# constraint = CircleConstraintForCar(np.ones(2), 0.5, system)
+	# constraint2 = CircleConstraintForCar(np.array([2, 2]), 1.0, system)
+		
+	constraint = CircleConstraintForCar(np.array([1,1]), 0.5, system)
+	constraint2 = CircleConstraintForCar(np.array([1, 2.5]), 0.5, system)
+	constraint3 = CircleConstraintForCar(np.array([2.5, 2.5]), 0.5, system)
+	solver.add_constraint(constraint)
+	# solver.add_constraint(constraint2)
+	solver.add_constraint(constraint3)
 	system.set_goal(np.array([3, 3, np.pi/2, 0]))
-	for i in range(20):
+	for i in range(2):
 		solver.backward_pass()
 		solver.forward_pass()
 	solver.system.draw_trajectories(solver.x_trajectories)
