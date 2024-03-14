@@ -101,6 +101,45 @@ class Car(DynamicalSystem):
 		ax.set_ylim(-1, 4)
 		plt.show()
 
+class DubinsCar(DynamicalSystem):
+	def __init__(self):
+		super().__init__(3, 2)
+		self.dt = 0.05
+		self.control_bound = np.array([5, np.pi])
+		self.goal = np.zeros(3)
+
+	def transition(self, x, u):
+		x_next = np.zeros(3)
+		x_next[0] = x[0] + self.dt * u[0] * np.cos(x[2])
+		x_next[1] = x[1] + self.dt * u[0] * np.sin(x[2])
+		x_next[2] = x[2] + self.dt * u[1]
+		return x_next
+	
+	def transition_J(self, x, u):
+		A = np.identity(3)
+		B = np.zeros((3, 2))
+		A[0, 2] = -self.dt * u[0] * np.sin(x[2])
+		A[1, 2] = self.dt * u[0] * np.cos(x[2])
+		B[0, 0] = self.dt * np.cos(x[2])
+		B[1, 0] = self.dt * np.sin(x[2])
+		B[2, 1] = self.dt
+		return A, B
+	
+	def draw_trajectories(self, x_trajectories):
+		ax = plt.subplot(111)
+		circle1 = plt.Circle((1, 1), 0.5, color=(0, 0.8, 0.8))
+		circle2 = plt.Circle((2, 2), 1, color=(0, 0.8, 0.8))
+		ax.add_artist(circle1)
+		ax.add_artist(circle2)
+		for i in range(0, x_trajectories.shape[1]-1, 5):
+			circle_car = plt.Circle((x_trajectories[0, i], x_trajectories[1, i]), 0.1, facecolor='none')
+			ax.add_patch(circle_car)
+			ax.arrow(x_trajectories[0, i], x_trajectories[1, i], 0.1*np.sin(x_trajectories[2, i]), 0.1 * np.cos(x_trajectories[2, i]), head_width=0.05, head_length=0.1, fc='k', ec='k')
+		ax.set_aspect("equal")
+		ax.set_xlim(0, 3)
+		ax.set_ylim(0, 3)
+		plt.show()
+
 class Quadrotor(DynamicalSystem):
 	def __init__(self):
 		super().__init__(12, 4)

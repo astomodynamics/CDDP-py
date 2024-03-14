@@ -19,8 +19,8 @@ class CDDP:
 		self.Q_UX = np.zeros((self.system.control_size, self.system.state_size, self.horizon))
 		self.Q_UU = np.zeros((self.system.control_size, self.system.control_size, self.horizon))
 		self.Q_U = np.zeros((self.system.control_size, self.horizon))
-		self.reg_factor = 0.001
-		self.reg_factor_u = 0.001
+		self.reg_factor = 0.000
+		self.reg_factor_u = 0.000
 		self.active_set_tol = 0.01
 
 	def set_initial_trajectories(self, x_trajectories, u_trajectories):
@@ -43,15 +43,26 @@ class CDDP:
 			x_new_trajectories[:, 0] = np.copy(x)
 			for i in range(self.horizon):
 				delta_x = x - self.x_trajectories[:, i]
+				# print("x: ", x, "x_traj: ", self.x_trajectories[:, i])
 				x_new_trajectories[:, i] = np.copy(x)
 				Q_ux = self.Q_UX[:, :, i]
 				Q_u = self.Q_U[:, i]
+				
+			
+			# print("Q_xx", Q_xx, 'at', i)
+				# print("Q_ux", Q_ux, 'at', i)
+				# print("Q_u", Q_u, 'at', i)
+				# print("Q_uu", self.Q_UU[:,:,i], 'at', i)
+
 				P = sparse.csr_matrix(self.Q_UU[:, : , i])
 				q = (Q_ux.dot(delta_x) + Q_u)
 				'''lb = -self.system.control_bound - self.u_trajectories[:, i]
 				ub = self.system.control_bound - self.u_trajectories[:, i]
 				lb *= trust_region_scale
 				ub *= trust_region_scale'''
+				# print("Q_ux * delta_x", Q_ux.dot(delta_x))
+				# print("Q_u", Q_u)
+				# print(q)
 
 				#constraint_A = sparse.csr_matrix(np.identity(self.system.control_size))
 
@@ -66,26 +77,29 @@ class CDDP:
 				ub[0:self.system.control_size] = self.system.control_bound - self.u_trajectories[:, i]
 				lb *= trust_region_scale
 				ub *= trust_region_scale
-
+				"""
 				#formulate linearized state constraints
-				f_x, f_u = self.system.transition_J(x, self.u_trajectories[:, i])				
-				constraint_index = self.system.control_size
-				for constraint in self.constraints:
-					if i <= self.horizon - 2:#current action might cause state constraint violation
-						x_temp = self.system.transition(x, self.u_trajectories[:, i])
-						D = constraint.evaluate_constraint(x_temp)
-						#print("constraint eval", D, i, x)
-						C = constraint.evaluate_constraint_J(x_temp)
-						#print(C.shape, f_u.shape)
-						C = C.dot(f_u)
-						constraint_A[constraint_index, :] = np.copy(C)
-						lb[constraint_index] = -np.inf #no lower bound
-						ub[constraint_index] = -D
-					constraint_index += 1
+				# f_x, f_u = self.system.transition_J(x, self.u_trajectories[:, i])				
+				# constraint_index = self.system.control_size
+				# for constraint in self.constraints:
+				# 	if i <= self.horizon - 2:#current action might cause state constraint violation
+				# 		x_temp = self.system.transition(x, self.u_trajectories[:, i])
+				# 		D = constraint.evaluate_constraint(x_temp)
+				# 		#print("constraint eval", D, i, x)
+				# 		C = constraint.evaluate_constraint_J(x_temp)
+				# 		#print(C.shape, f_u.shape)
+				# 		C = C.dot(f_u)
+				# 		constraint_A[constraint_index, :] = np.copy(C)
+				# 		lb[constraint_index] = -np.inf #no lower bound
+				# 		ub[constraint_index] = -D
+				# 	constraint_index += 1
+				"""
 
 				constraint_A = sparse.csr_matrix(constraint_A)
+				# print(constraint_A)
 				prob = osqp.OSQP()
-				prob.setup(P, q, constraint_A, lb, ub, alpha=1.0, verbose=False)
+				# prob.setup(P, q, constraint_A, lb, ub, alpha=1.0, verbose=False)
+				prob.setup(P, q, constraint_A, lb, ub, verbose=False)
 				res = prob.solve()
 				if res.info.status != 'solved':
 					feasible = False
@@ -97,6 +111,7 @@ class CDDP:
 				u_new_trajectories[:, i] = np.copy(u)
 				current_J += self.system.calculate_cost(x, u)
 				x = self.system.transition(x, u)
+				# print("delta_x", delta_x, "delta_u", delta_u, "u", u, "at", i)
 			x_new_trajectories[:, self.horizon] = np.copy(x)
 			current_J += self.system.calculate_final_cost(x)
 			if feasible == True:
@@ -123,6 +138,12 @@ class CDDP:
 			Q_xx = l_xxt + f_x.T.dot(A + self.reg_factor * np.identity(self.system.state_size)).dot(f_x)
 			Q_ux = l_uxt + f_u.T.dot(A + self.reg_factor * np.identity(self.system.state_size)).dot(f_x)
 			Q_uu = l_uut + f_u.T.dot(A + self.reg_factor * np.identity(self.system.state_size)).dot(f_u) + self.reg_factor_u * np.identity(self.system.control_size)
+
+			# print("Q_x", Q_x, 'at', i)
+			# print("Q_u", Q_u, 'at', i)
+			# print("Q_xx", Q_xx, 'at', i)
+			# print("Q_ux", Q_ux, 'at', i)
+			# print("Q_uu", Q_uu, 'at', i)
 			
 			#identify active constraint
 			C = np.empty((self.system.control_size + len(self.constraints), self.system.control_size))
@@ -159,6 +180,8 @@ class CDDP:
 			if index == 0: #no constraint active
 				K = -inv(Q_uu).dot(Q_ux)
 				k = -inv(Q_uu).dot(Q_u)
+				# print("k at index", k, 'at', i)
+				# print("K at index", K, 'at', i)
 			else:
 				C = C[0:index, :]
 				D = D[0:index, :]
