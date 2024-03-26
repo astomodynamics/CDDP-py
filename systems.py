@@ -31,6 +31,7 @@ class DoubleIntegrator(DynamicalSystem):
 		result[0:2] = x[0:2] + self.dt * x[2:4]
 		result[2:4] = x[2:4] + self.dt * u
 		return result
+
 	def transition_J(self, x, u):
 		#return matrix A, B, so that x = Ax + Bu
 		A = np.zeros((self.state_size, self.state_size))
@@ -139,6 +140,65 @@ class DubinsCar(DynamicalSystem):
 		ax.set_xlim(0, 3)
 		ax.set_ylim(0, 3)
 		plt.show()
+
+class CartPole(DynamicalSystem):
+	def __init__(self):
+		super().__init__(4, 1)
+		self.dt = 0.01
+		self.control_bound = np.array([20])
+		self.goal = np.zeros(4)
+		self.mc = 1.0
+		self.mp = 0.2
+		self.L = 0.5
+		self.g = 9.81
+
+	def transition(self, x, u):
+		mc = self.mc
+		mp = self.mp
+		L = self.L
+		g = self.g
+
+		x_next = np.zeros(4)
+		x_next[0] = x[0] + self.dt * x[2]
+		x_next[1] = x[1] + self.dt * x[3]
+		x_next[2] = x[2] + self.dt * (u[0] - mp*L*x[3]**2*np.sin(x[1]) + mp*g*np.cos(x[1])*np.sin(x[1])) / (mc+mp*np.sin(x[1])**2)
+		x_next[3] = x[3] + self.dt * (u[0]*np.cos(x[1]) - mp*L*x[3]**2*np.cos(x[1])*np.sin(x[1]) + (mc+mp)*g*np.sin(x[1])) / (L*(mc+mp*np.sin(x[1])**2))
+
+		# x_next = self.rk4_step(x, u)
+		return x_next
+	
+	def dynamics(self, x, u):
+		x_dot = np.zeros(4)
+		x_dot[0] = x[2]
+		x_dot[1] = x[3]
+		x_dot[2] = (u[0] - self.mp*self.L*x[3]**2*np.sin(x[1]) + self.mp*self.g*np.cos(x[1])*np.sin(x[1])) / (self.mc+self.mp*np.sin(x[1])**2)
+		x_dot[3] = (u[0]*np.cos(x[1]) - self.mp*self.L*x[3]**2*np.cos(x[1])*np.sin(x[1]) + (self.mc+self.mp)*self.g*np.sin(x[1])) / (self.L*(self.mc+self.mp*np.sin(x[1])**2))
+		return x_dot
+
+	
+	def rk4_step(self, x, u):
+		k1 = self.dynamics(x, u)
+		k2 = self.dynamics(x + 0.5*self.dt*k1, u)
+		k3 = self.dynamics(x + 0.5*self.dt*k2, u)
+		k4 = self.dynamics(x + self.dt*k3, u)
+		return x + self.dt/6*(k1 + 2*k2 + 2*k3 + k4)
+
+	def transition_J(self, x, u):
+		mc = self.mc
+		mp = self.mp
+		L = self.L
+		g = self.g
+		A = np.zeros((self.state_size, self.state_size))
+		B = np.zeros((self.state_size, self.control_size))
+		
+		return A, B
+	
+	def draw_trajectories(self, x_trajectories):
+		# plot angle trajectory time series
+		plt.plot(x_trajectories[1, :])
+		plt.show()
+
+	
 
 class Quadrotor(DynamicalSystem):
 	def __init__(self):

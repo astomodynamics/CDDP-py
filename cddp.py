@@ -77,23 +77,23 @@ class CDDP:
 				ub[0:self.system.control_size] = self.system.control_bound - self.u_trajectories[:, i]
 				lb *= trust_region_scale
 				ub *= trust_region_scale
-				"""
+			
 				#formulate linearized state constraints
-				# f_x, f_u = self.system.transition_J(x, self.u_trajectories[:, i])				
-				# constraint_index = self.system.control_size
-				# for constraint in self.constraints:
-				# 	if i <= self.horizon - 2:#current action might cause state constraint violation
-				# 		x_temp = self.system.transition(x, self.u_trajectories[:, i])
-				# 		D = constraint.evaluate_constraint(x_temp)
-				# 		#print("constraint eval", D, i, x)
-				# 		C = constraint.evaluate_constraint_J(x_temp)
-				# 		#print(C.shape, f_u.shape)
-				# 		C = C.dot(f_u)
-				# 		constraint_A[constraint_index, :] = np.copy(C)
-				# 		lb[constraint_index] = -np.inf #no lower bound
-				# 		ub[constraint_index] = -D
-				# 	constraint_index += 1
-				"""
+				f_x, f_u = self.system.transition_J(x, self.u_trajectories[:, i])				
+				constraint_index = self.system.control_size
+				for constraint in self.constraints:
+					if i <= self.horizon - 2:#current action might cause state constraint violation
+						x_temp = self.system.transition(x, self.u_trajectories[:, i])
+						D = constraint.evaluate_constraint(x_temp)
+						#print("constraint eval", D, i, x)
+						C = constraint.evaluate_constraint_J(x_temp)
+						#print(C.shape, f_u.shape)
+						C = C.dot(f_u)
+						constraint_A[constraint_index, :] = np.copy(C)
+						lb[constraint_index] = -np.inf #no lower bound
+						ub[constraint_index] = -D
+					constraint_index += 1
+				
 
 				constraint_A = sparse.csr_matrix(constraint_A)
 				# print(constraint_A)
