@@ -129,9 +129,9 @@ class DubinsCar(DynamicalSystem):
 	def draw_trajectories(self, x_trajectories):
 		ax = plt.subplot(111)
 		circle1 = plt.Circle((1, 1), 0.5, color=(0, 0.8, 0.8))
-		circle2 = plt.Circle((2, 2), 1, color=(0, 0.8, 0.8))
+		# circle2 = plt.Circle((2, 2), 1, color=(0, 0.8, 0.8))
 		ax.add_artist(circle1)
-		ax.add_artist(circle2)
+		# ax.add_artist(circle2)
 		for i in range(0, x_trajectories.shape[1]-1, 5):
 			circle_car = plt.Circle((x_trajectories[0, i], x_trajectories[1, i]), 0.1, facecolor='none')
 			ax.add_patch(circle_car)

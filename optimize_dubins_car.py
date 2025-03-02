@@ -1,5 +1,5 @@
 from systems import DoubleIntegrator, Car, DubinsCar
-from constraints import CircleConstraintForDoubleIntegrator, CircleConstraintForCar
+from constraints import CircleConstraintForDoubleIntegrator, CircleConstraintForCar, CircleConstraintForDubinsCar
 from cddp import CDDP
 import numpy as np
 
@@ -18,7 +18,14 @@ if __name__ == "__main__":
         #solve for initial trajectories
         system.set_goal(np.array([2, 2, np.pi/2]))
         # print("total cost: ", system.calculate_final_cost(x0))
-        for i in range(10):
+        # for i in range(10):
+        #     solver.backward_pass()
+        #     solver.forward_pass()
+
+        constraint = CircleConstraintForDubinsCar(np.ones(2), 0.5, system)
+        solver.add_constraint(constraint)
+
+        for i in range(10): 
             solver.backward_pass()
             solver.forward_pass()
         print(solver.x_trajectories[:, -1])
